@@ -1,0 +1,334 @@
+diff --git a/config/build.conf.js b/config/build.conf.js
+index 6b8977f..80587aa 100644
+--- a/config/build.conf.js
++++ b/config/build.conf.js
+@@ -68,7 +68,7 @@ const REVISION = process.env.GITHUB_COMMIT ?? process.env.REVISION;
+ /**
+  * The copyright notice for debian packages and .exe files
+  */
+-const COPYRIGHT = `${new Date().getYear() + 1900} MongoDB, Inc.`;
++const COPYRIGHT = `${new Date().getYear() + 1900} Percona LLC`;
+ 
+ /**
+  * The manual page file name
+@@ -127,21 +127,10 @@ module.exports = {
+           license: {
+             sourceFilePath: path.resolve(__dirname, '..', 'LICENSE'),
+             packagedFilePath: 'LICENSE-mongosh',
+-            debCopyright: `${new Date().getYear() + 1900} MongoDB, Inc.`,
++            debCopyright: `${new Date().getYear() + 1900} Percona LLC`,
+             debIdentifier: 'Apache-2',
+             rpmIdentifier: 'ASL 2.0'
+           }
+-        },
+-        {
+-          sourceFilePath: CRYPT_LIBRARY_PATH,
+-          category: 'lib',
+-          license: {
+-            sourceFilePath: path.resolve(__dirname, '..', 'packaging', 'LICENSE-crypt-library'),
+-            packagedFilePath: 'LICENSE-crypt-library',
+-            debCopyright: COPYRIGHT,
+-            debIdentifier: 'Proprietary',
+-            rpmIdentifier: 'Proprietary'
+-          }
+         }
+       ],
+       otherDocFilePaths: [
+@@ -159,14 +148,14 @@ module.exports = {
+         packagedFilePath: MANPAGE_NAME,
+       },
+       metadata: {
+-        name: 'mongosh',
+-        rpmName: 'mongodb-mongosh' + (SHARED_OPENSSL_TAG ? `-shared-${SHARED_OPENSSL_TAG}` : ''),
+-        debName: 'mongodb-mongosh' + (SHARED_OPENSSL_TAG ? `-shared-${SHARED_OPENSSL_TAG}` : ''),
++        name: 'percona-mongodb-mongosh',
++        rpmName: 'percona-mongodb-mongosh' + (SHARED_OPENSSL_TAG ? `-shared-${SHARED_OPENSSL_TAG}` : ''),
++        debName: 'percona-mongodb-mongosh' + (SHARED_OPENSSL_TAG ? `-shared-${SHARED_OPENSSL_TAG}` : ''),
+         provides: [
+           { name: 'mongodb-shell', version: '2.0' },
+           ...(
+             SHARED_OPENSSL_TAG ?
+-              [{ name: 'mongodb-mongosh', version: CLI_REPL_PACKAGE_JSON.version }] :
++              [{ name: 'percona-mongodb-mongosh', version: CLI_REPL_PACKAGE_JSON.version }] :
+               []
+           )
+         ],
+@@ -174,7 +163,7 @@ module.exports = {
+           SHARED_OPENSSL_TAG === 'openssl11' ? ', libssl1.1' :
+             SHARED_OPENSSL_TAG === 'openssl3' ? ', libssl3' : ''
+         ),
+-        fullName: 'MongoDB Shell',
++        fullName: 'Percona MongoDB Shell',
+         version: CLI_REPL_PACKAGE_JSON.version,
+         description: CLI_REPL_PACKAGE_JSON.description,
+         homepage: CLI_REPL_PACKAGE_JSON.homepage,
+diff --git a/packages/build/src/config/build-variant.ts b/packages/build/src/config/build-variant.ts
+index e5b7110..b9c0b3f 100644
+--- a/packages/build/src/config/build-variant.ts
++++ b/packages/build/src/config/build-variant.ts
+@@ -44,6 +44,12 @@ export function getDebArchName(arch: Arch): string {
+   }
+ }
+ 
++export function getDebCodeName(): string {
++  const execSync = require("child_process").execSync;
++  const dist = execSync("lsb_release -sc").toString().trim();
++  return dist;
++}
++
+ export function getRPMArchName(arch: Arch): string {
+   switch (arch) {
+     case 'x64': return 'x86_64';
+@@ -54,6 +60,12 @@ export function getRPMArchName(arch: Arch): string {
+   }
+ }
+ 
++export function getRPMCodeName(): string {
++  const execSync = require("child_process").execSync;
++  const dist = execSync("rpm --eval %{?dist}").toString().trim();
++  return dist;
++}
++
+ export function getDownloadCenterDistroDescription(variant: PackageVariant): string {
+   for (const { packages } of RELEASE_PACKAGE_MATRIX) {
+     for (const pkg of packages) {
+diff --git a/packages/build/src/packaging/package/create-package.ts b/packages/build/src/packaging/package/create-package.ts
+index 4a3f20d..17e3752 100644
+--- a/packages/build/src/packaging/package/create-package.ts
++++ b/packages/build/src/packaging/package/create-package.ts
+@@ -24,6 +24,8 @@ export async function createPackage(
+   const tarballFile = getPackageFile(packageVariant, () => packageInformation);
+   const fullTarballFilePath = path.join(outputDir, tarballFile.path);
+   console.info('mongosh: gzipping:', fullTarballFilePath);
++  const json = JSON.stringify(packageInformation);
++  console.log(json);
+ 
+   switch (getDistro(packageVariant)) {
+     case 'linux':
+diff --git a/packages/build/src/packaging/package/debian.ts b/packages/build/src/packaging/package/debian.ts
+index 7e9ee6f..0721b5e 100644
+--- a/packages/build/src/packaging/package/debian.ts
++++ b/packages/build/src/packaging/package/debian.ts
+@@ -4,7 +4,7 @@ import rimraf from 'rimraf';
+ import { promisify } from 'util';
+ import { execFile as execFileFn, generateDirFromTemplate, getManSection } from './helpers';
+ import { PackageInformation } from './package-information';
+-import { Arch, getDebArchName } from '../../config';
++import { Arch, getDebArchName, getDebCodeName } from '../../config';
+ 
+ const { COPYFILE_FICLONE } = constants;
+ 
+@@ -24,6 +24,7 @@ export async function createDebianPackage(
+     ...pkg.metadata,
+     size,
+     debianArch: getDebArchName(arch),
++    debianDist: `.${getDebCodeName()}`,
+     provides: pkg.metadata.provides.map(({ name, version }) => `${name} (= ${version})`).join(', ')
+   });
+ 
+@@ -64,7 +65,8 @@ export async function createDebianPackage(
+   }
+ 
+   // Create the package.
+-  await execFile('dpkg', [
++  await execFile('dpkg-deb', [
++    '-Zgzip',
+     '--build', path.join(dir, pkg.metadata.debName)
+   ], {
+     cwd: path.dirname(dir)
+diff --git a/packages/build/src/packaging/package/get-package-file.ts b/packages/build/src/packaging/package/get-package-file.ts
+index 9f18ef9..49345f7 100644
+--- a/packages/build/src/packaging/package/get-package-file.ts
++++ b/packages/build/src/packaging/package/get-package-file.ts
+@@ -1,4 +1,4 @@
+-import { PackageVariant, getDistro, getArch, getDebArchName, getRPMArchName } from '../../config';
++import { PackageVariant, getDistro, getArch, getDebArchName, getDebCodeName, getRPMArchName, getRPMCodeName } from '../../config';
+ import type { PackageInformationProvider } from './package-information';
+ 
+ export interface PackageFile {
+@@ -11,12 +11,12 @@ export function getPackageFile(packageVariant: PackageVariant, packageInformatio
+   switch (getDistro(packageVariant)) {
+     case 'linux':
+       return {
+-        path: `${name}-${version}-${packageVariant}.tgz`,
++        path: `${name}-${version}-${getRPMArchName(getArch(packageVariant))}.tar.gz`,
+         contentType: 'application/gzip'
+       };
+     case 'rpm':
+       return {
+-        path: `${rpmName}-${version}.${getRPMArchName(getArch(packageVariant))}.rpm`,
++      path: `${rpmName}-${version}${getRPMCodeName()}.${getRPMArchName(getArch(packageVariant))}.rpm`,
+         contentType: 'application/x-rpm'
+       };
+     case 'deb':
+@@ -24,7 +24,7 @@ export function getPackageFile(packageVariant: PackageVariant, packageInformatio
+       // name: https://www.debian.org/doc/manuals/debian-faq/pkg-basics.en.html
+       // sometimes there is also revision number, but we can add that later.
+       return {
+-        path: `${debName}_${version}_${getDebArchName(getArch(packageVariant))}.deb`,
++        path: `${debName}_${version}.${getDebCodeName()}_${getDebArchName(getArch(packageVariant))}.deb`,
+         contentType: 'application/vnd.debian.binary-package'
+       };
+     case 'darwin':
+diff --git a/packages/build/src/packaging/package/redhat.ts b/packages/build/src/packaging/package/redhat.ts
+index 35299bf..6b782f9 100644
+--- a/packages/build/src/packaging/package/redhat.ts
++++ b/packages/build/src/packaging/package/redhat.ts
+@@ -85,12 +85,17 @@ export async function createRedhatPackage(
+ 
+   if (pkg.manpage) {
+     await fs.copyFile(pkg.manpage.sourceFilePath, path.join(dir, 'BUILD', pkg.manpage.packagedFilePath), COPYFILE_FICLONE);
+-  }
++    }
+ 
++    //    const dist = (await execFile('rpm', ['--eval', '%{?dist}'], { cwd: path.dirname(dir) }).result.stdout.trim());
++    const dist = (await execFile('rpm', ['--eval', '%{?dist}'], { cwd: path.dirname(dir) })).stdout.toString().trim();
++    const json = JSON.stringify(dist);
++    console.log(json);
+   // Create the package.
+   await execFile('rpmbuild', [
+     '-bb', path.join(dir, 'SPECS', `${pkg.metadata.rpmName}.spec`),
+     '--target', getRPMArchName(arch),
++    '--define', `dist ${dist}`,
+     '--define', `_topdir ${dir}`
+   ], {
+     cwd: path.dirname(dir)
+diff --git a/packages/cli-repl/package.json b/packages/cli-repl/package.json
+index bf49e90..e4fe041 100644
+--- a/packages/cli-repl/package.json
++++ b/packages/cli-repl/package.json
+@@ -1,10 +1,10 @@
+ {
+   "name": "@mongosh/cli-repl",
+   "version": "0.0.0-dev.0",
+-  "description": "MongoDB Shell CLI REPL Package",
+-  "homepage": "https://github.com/mongodb-js/mongosh",
+-  "author": "Compass Team <compass@mongodb.com>",
+-  "manufacturer": "MongoDB Inc.",
++  "description": "Percona MongoDB Shell CLI REPL Package",
++  "homepage": "http://www.percona.com/",
++  "author": "Percona LLC <info@percona.com>",
++  "manufacturer": "Percona LLC",
+   "main": "lib/index.js",
+   "types": "lib/index.d.ts",
+   "bin": {
+diff --git a/packaging/deb-template/DEBIAN/control b/packaging/deb-template/DEBIAN/control
+index 0251d52..9cba860 100644
+--- a/packaging/deb-template/DEBIAN/control
++++ b/packaging/deb-template/DEBIAN/control
+@@ -1,6 +1,6 @@
+ Package: {{debName}}
+ Provides: {{provides}}
+-Version: {{version}}
++Version: {{version}}{{debianDist}}
+ Section: utils
+ Priority: optional
+ Architecture: {{debianArch}}
+diff --git a/packaging/rpm-template/SPECS/mongodb-mongosh-shared-openssl11.spec b/packaging/rpm-template/SPECS/mongodb-mongosh-shared-openssl11.spec
+deleted file mode 120000
+index 12dd443..0000000
+--- a/packaging/rpm-template/SPECS/mongodb-mongosh-shared-openssl11.spec
++++ /dev/null
+@@ -1 +0,0 @@
+-mongodb-mongosh.spec
+\ No newline at end of file
+diff --git a/packaging/rpm-template/SPECS/mongodb-mongosh-shared-openssl3.spec b/packaging/rpm-template/SPECS/mongodb-mongosh-shared-openssl3.spec
+deleted file mode 120000
+index 12dd443..0000000
+--- a/packaging/rpm-template/SPECS/mongodb-mongosh-shared-openssl3.spec
++++ /dev/null
+@@ -1 +0,0 @@
+-mongodb-mongosh.spec
+\ No newline at end of file
+diff --git a/packaging/rpm-template/SPECS/mongodb-mongosh.spec b/packaging/rpm-template/SPECS/mongodb-mongosh.spec
+deleted file mode 100644
+index 9b7e8e1..0000000
+--- a/packaging/rpm-template/SPECS/mongodb-mongosh.spec
++++ /dev/null
+@@ -1,26 +0,0 @@
+-# https://rpm-packaging-guide.github.io/#what-is-a-spec-file
+-%define _binary_payload w2.xzdio
+-# https://jira.mongodb.org/browse/MONGOSH-1159
+-%define _build_id_links none
+-# Work around https://salsa.debian.org/debian/debhelper/-/commit/8f29a0726bdebcb01b6fd768fde8016fcd5dc3f4
+-# (only relevant when building from Debian/Ubuntu)
+-%undefine _libexecdir
+-%define _libexecdir %{_exec_prefix}/libexec
+-
+-Name: {{rpmName}}
+-Provides: {{provides}}
+-Version: {{version}}
+-Release: 1%{?dist}
+-Group: Development/Tools
+-Summary: {{description}}
+-License: {{licenseRpm}}
+-URL: {{homepage}}
+-
+-%description
+-{{description}}
+-
+-%install
+-{{installscriptRpm}}
+-
+-%files
+-{{filelistRpm}}
+diff --git a/packaging/rpm-template/SPECS/percona-mongodb-mongosh-shared-openssl11.spec b/packaging/rpm-template/SPECS/percona-mongodb-mongosh-shared-openssl11.spec
+new file mode 120000
+index 0000000..f7ee713
+--- /dev/null
++++ b/packaging/rpm-template/SPECS/percona-mongodb-mongosh-shared-openssl11.spec
+@@ -0,0 +1 @@
++percona-mongodb-mongosh.spec
+\ No newline at end of file
+diff --git a/packaging/rpm-template/SPECS/percona-mongodb-mongosh-shared-openssl3.spec b/packaging/rpm-template/SPECS/percona-mongodb-mongosh-shared-openssl3.spec
+new file mode 120000
+index 0000000..f7ee713
+--- /dev/null
++++ b/packaging/rpm-template/SPECS/percona-mongodb-mongosh-shared-openssl3.spec
+@@ -0,0 +1 @@
++percona-mongodb-mongosh.spec
+\ No newline at end of file
+diff --git a/packaging/rpm-template/SPECS/percona-mongodb-mongosh.spec b/packaging/rpm-template/SPECS/percona-mongodb-mongosh.spec
+new file mode 100644
+index 0000000..9b7e8e1
+--- /dev/null
++++ b/packaging/rpm-template/SPECS/percona-mongodb-mongosh.spec
+@@ -0,0 +1,26 @@
++# https://rpm-packaging-guide.github.io/#what-is-a-spec-file
++%define _binary_payload w2.xzdio
++# https://jira.mongodb.org/browse/MONGOSH-1159
++%define _build_id_links none
++# Work around https://salsa.debian.org/debian/debhelper/-/commit/8f29a0726bdebcb01b6fd768fde8016fcd5dc3f4
++# (only relevant when building from Debian/Ubuntu)
++%undefine _libexecdir
++%define _libexecdir %{_exec_prefix}/libexec
++
++Name: {{rpmName}}
++Provides: {{provides}}
++Version: {{version}}
++Release: 1%{?dist}
++Group: Development/Tools
++Summary: {{description}}
++License: {{licenseRpm}}
++URL: {{homepage}}
++
++%description
++{{description}}
++
++%install
++{{installscriptRpm}}
++
++%files
++{{filelistRpm}}
+diff --git a/scripts/prep-fle-addon.sh b/scripts/prep-fle-addon.sh
+index 676649d..5a441e7 100755
+--- a/scripts/prep-fle-addon.sh
++++ b/scripts/prep-fle-addon.sh
+@@ -89,6 +89,6 @@ fi
+ if [ x"$FLE_NODE_SOURCE_PATH" != x"" ]; then
+   mkdir -p "$FLE_NODE_SOURCE_PATH"/deps/lib
+   mkdir -p "$FLE_NODE_SOURCE_PATH"/deps/include
+-  cp -rv "$BUILDROOT"/lib/*-static* "$FLE_NODE_SOURCE_PATH"/deps/lib
++  cp -rv "$BUILDROOT"/lib*/*-static* "$FLE_NODE_SOURCE_PATH"/deps/lib
+   cp -rv "$BUILDROOT"/include/*{kms,mongocrypt}* "$FLE_NODE_SOURCE_PATH"/deps/include
+ fi

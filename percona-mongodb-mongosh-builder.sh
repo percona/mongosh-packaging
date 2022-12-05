@@ -151,7 +151,7 @@ get_system(){
 install_npm_modules() {
     npm install -g npm@latest
     npm install -g n
-    n stable
+    n 16.18.0
     hash -r
     npm install -g lerna
     npm install -g typescript

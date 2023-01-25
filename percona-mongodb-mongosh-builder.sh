@@ -120,7 +120,8 @@ get_sources(){
     mv ${PRODUCT} ${PRODUCT}-${VERSION}
     pushd ${PRODUCT}-${VERSION}
         cp ../../mongosh.patch .
-        git apply ./mongosh.patch && rm ./mongosh.patch
+        git apply ./mongosh.patch || exit 1
+        rm ./mongosh.patch
         grep -r -l "0\.0\.0\-dev\.0" . | xargs sed -i "s:0.0.0-dev.0:${VERSION}:g"
     popd
     tar --owner=0 --group=0 --exclude=.* -czf ${PRODUCT}-${VERSION}.tar.gz ${PRODUCT}-${VERSION}

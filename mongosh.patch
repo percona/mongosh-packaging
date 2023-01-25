@@ -320,15 +320,3 @@ index 0000000..9b7e8e1
 +
 +%files
 +{{filelistRpm}}
-diff --git a/scripts/prep-fle-addon.sh b/scripts/prep-fle-addon.sh
-index 676649d..5a441e7 100755
---- a/scripts/prep-fle-addon.sh
-+++ b/scripts/prep-fle-addon.sh
-@@ -89,6 +89,6 @@ fi
- if [ x"$FLE_NODE_SOURCE_PATH" != x"" ]; then
-   mkdir -p "$FLE_NODE_SOURCE_PATH"/deps/lib
-   mkdir -p "$FLE_NODE_SOURCE_PATH"/deps/include
--  cp -rv "$BUILDROOT"/lib/*-static* "$FLE_NODE_SOURCE_PATH"/deps/lib
-+  cp -rv "$BUILDROOT"/lib*/*-static* "$FLE_NODE_SOURCE_PATH"/deps/lib
-   cp -rv "$BUILDROOT"/include/*{kms,mongocrypt}* "$FLE_NODE_SOURCE_PATH"/deps/include
- fi

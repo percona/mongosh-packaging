@@ -209,8 +209,8 @@ index bf49e90..e4fe041 100644
 +  "homepage": "http://www.percona.com/",
 +  "author": "Percona LLC <info@percona.com>",
 +  "manufacturer": "Percona LLC",
-   "main": "lib/index.js",
-   "types": "lib/index.d.ts",
+   "main": "lib/run.js",
+   "types": "lib/run.d.ts",
    "bin": {
 diff --git a/packaging/deb-template/DEBIAN/control b/packaging/deb-template/DEBIAN/control
 index 0251d52..9cba860 100644

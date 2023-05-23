@@ -189,7 +189,7 @@ install_deps() {
           source /opt/rh/gcc-toolset-11/enable
       fi
       if [ "x${RHEL}" = "x9" ]; then
-          yum -y install npm gcc g++
+          yum -y install npm gcc g++ openssl-devel
       fi
       yum clean all
     else
@@ -259,8 +259,11 @@ build_mongosh(){
     pwd
     ls -la
     npm run bootstrap
-    NODE_JS_VERSION=${NODE_JS_VERSION} SEGMENT_API_KEY="dummy" BOXEDNODE_MAKE_ARGS="-j${NCPU}" REVISION=${REVISION} BUILD_FLE_FROM_SOURCE=true npm run compile-exec;
-    NODE_JS_VERSION=${NODE_JS_VERSION} SEGMENT_API_KEY="dummy" BOXEDNODE_MAKE_ARGS="-j${NCPU}" REVISION=${REVISION} BUILD_FLE_FROM_SOURCE=true npm run evergreen-release package -- --build-variant=${VARIANT}
+    if [ "x${RHEL}" = "x9" ]; then
+        export BOXEDNODE_CONFIGURE_ARGS="--shared-openssl"
+    fi
+    NODE_JS_VERSION=${NODE_JS_VERSION} SEGMENT_API_KEY="dummy" BOXEDNODE_CONFIGURE_ARGS=${BOXEDNODE_CONFIGURE_ARGS} BOXEDNODE_MAKE_ARGS="-j${NCPU}" REVISION=${REVISION} BUILD_FLE_FROM_SOURCE=true npm run compile-exec;
+    NODE_JS_VERSION=${NODE_JS_VERSION} SEGMENT_API_KEY="dummy" BOXEDNODE_CONFIGURE_ARGS=${BOXEDNODE_CONFIGURE_ARGS} BOXEDNODE_MAKE_ARGS="-j${NCPU}" REVISION=${REVISION} BUILD_FLE_FROM_SOURCE=true npm run evergreen-release package -- --build-variant=${VARIANT}
     echo ${VARIANT}
 
     if [[ ${VARIANT} =~ 'rpm' ]]; then

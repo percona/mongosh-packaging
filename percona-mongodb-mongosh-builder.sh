@@ -107,7 +107,7 @@ get_sources(){
     REVISION=$(git rev-parse --short HEAD)
     GITCOMMIT=$(git rev-parse HEAD 2>/dev/null)
     GITBRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-    NODE_JS_VERSION=$(grep -e "const NODE_JS_VERSION_16" .evergreen/evergreen.yml.in | cut -d "'" -f 2)
+    NODE_JS_VERSION=$(grep -oP '(?<="version": ")[^"]*' .evergreen/node-16-latest.json)
     echo "VERSION=${VERSION}" > VERSION
     echo "REVISION=${REVISION}" >> VERSION
     echo "GITCOMMIT=${GITCOMMIT}" >> VERSION

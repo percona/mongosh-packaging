@@ -1,8 +1,14 @@
+commit 8690e6b423c292168449805c0d60c6fed69bcf88
+Author: Oleksandr Miroshnychenko <alex.miroshnychenko@percona.com>
+Date:   Tue Sep 5 20:27:59 2023 +0000
+
+    v1.10.6 new patch
+
 diff --git a/config/build.conf.js b/config/build.conf.js
-index 6b8977f..80587aa 100644
+index f6a5094..f8001a4 100644
 --- a/config/build.conf.js
 +++ b/config/build.conf.js
-@@ -68,7 +68,7 @@ const REVISION = process.env.GITHUB_COMMIT ?? process.env.REVISION;
+@@ -63,7 +63,7 @@ const REVISION = process.env.GITHUB_COMMIT ?? process.env.REVISION;
  /**
   * The copyright notice for debian packages and .exe files
   */
@@ -11,7 +17,7 @@ index 6b8977f..80587aa 100644
  
  /**
   * The manual page file name
-@@ -127,21 +127,10 @@ module.exports = {
+@@ -122,21 +122,10 @@ module.exports = {
            license: {
              sourceFilePath: path.resolve(__dirname, '..', 'LICENSE'),
              packagedFilePath: 'LICENSE-mongosh',
@@ -34,7 +40,7 @@ index 6b8977f..80587aa 100644
          }
        ],
        otherDocFilePaths: [
-@@ -159,14 +148,14 @@ module.exports = {
+@@ -154,14 +143,14 @@ module.exports = {
          packagedFilePath: MANPAGE_NAME,
        },
        metadata: {
@@ -53,7 +59,7 @@ index 6b8977f..80587aa 100644
                []
            )
          ],
-@@ -174,7 +163,7 @@ module.exports = {
+@@ -169,7 +158,7 @@ module.exports = {
            SHARED_OPENSSL_TAG === 'openssl11' ? ', libssl1.1' :
              SHARED_OPENSSL_TAG === 'openssl3' ? ', libssl3' : ''
          ),
@@ -63,10 +69,10 @@ index 6b8977f..80587aa 100644
          description: CLI_REPL_PACKAGE_JSON.description,
          homepage: CLI_REPL_PACKAGE_JSON.homepage,
 diff --git a/packages/build/src/config/build-variant.ts b/packages/build/src/config/build-variant.ts
-index e5b7110..b9c0b3f 100644
+index e6964e6..6630c1e 100644
 --- a/packages/build/src/config/build-variant.ts
 +++ b/packages/build/src/config/build-variant.ts
-@@ -44,6 +44,12 @@ export function getDebArchName(arch: Arch): string {
+@@ -61,6 +61,12 @@ export function getDebArchName(arch: Arch): string {
    }
  }
  
@@ -78,8 +84,8 @@ index e5b7110..b9c0b3f 100644
 +
  export function getRPMArchName(arch: Arch): string {
    switch (arch) {
-     case 'x64': return 'x86_64';
-@@ -54,6 +60,12 @@ export function getRPMArchName(arch: Arch): string {
+     case 'x64':
+@@ -76,6 +82,12 @@ export function getRPMArchName(arch: Arch): string {
    }
  }
  
@@ -89,14 +95,14 @@ index e5b7110..b9c0b3f 100644
 +  return dist;
 +}
 +
- export function getDownloadCenterDistroDescription(variant: PackageVariant): string {
-   for (const { packages } of RELEASE_PACKAGE_MATRIX) {
-     for (const pkg of packages) {
+ export function getServerLikeArchName(arch: Arch): string {
+   switch (arch) {
+     case 'x64':
 diff --git a/packages/build/src/packaging/package/create-package.ts b/packages/build/src/packaging/package/create-package.ts
-index 4a3f20d..17e3752 100644
+index 9407d8e..d83d52d 100644
 --- a/packages/build/src/packaging/package/create-package.ts
 +++ b/packages/build/src/packaging/package/create-package.ts
-@@ -24,6 +24,8 @@ export async function createPackage(
+@@ -26,6 +26,8 @@ export async function createPackage(
    const tarballFile = getPackageFile(packageVariant, () => packageInformation);
    const fullTarballFilePath = path.join(outputDir, tarballFile.path);
    console.info('mongosh: gzipping:', fullTarballFilePath);
@@ -106,95 +112,117 @@ index 4a3f20d..17e3752 100644
    switch (getDistro(packageVariant)) {
      case 'linux':
 diff --git a/packages/build/src/packaging/package/debian.ts b/packages/build/src/packaging/package/debian.ts
-index 7e9ee6f..0721b5e 100644
+index 9174a1e..a3b5ca2 100644
 --- a/packages/build/src/packaging/package/debian.ts
 +++ b/packages/build/src/packaging/package/debian.ts
-@@ -4,7 +4,7 @@ import rimraf from 'rimraf';
- import { promisify } from 'util';
- import { execFile as execFileFn, generateDirFromTemplate, getManSection } from './helpers';
- import { PackageInformation } from './package-information';
--import { Arch, getDebArchName } from '../../config';
-+import { Arch, getDebArchName, getDebCodeName } from '../../config';
+@@ -9,7 +9,7 @@ import {
+ } from './helpers';
+ import type { PackageInformation } from './package-information';
+ import type { Arch } from '../../config';
+-import { getDebArchName } from '../../config';
++import { getDebArchName, getDebCodeName } from '../../config';
  
  const { COPYFILE_FICLONE } = constants;
  
-@@ -24,6 +24,7 @@ export async function createDebianPackage(
+@@ -29,6 +29,7 @@ export async function createDebianPackage(
      ...pkg.metadata,
      size,
      debianArch: getDebArchName(arch),
 +    debianDist: `.${getDebCodeName()}`,
-     provides: pkg.metadata.provides.map(({ name, version }) => `${name} (= ${version})`).join(', ')
-   });
- 
-@@ -64,7 +65,8 @@ export async function createDebianPackage(
+     provides: pkg.metadata.provides
+       .map(({ name, version }) => `${name} (= ${version})`)
+       .join(', '),
+@@ -101,7 +102,7 @@ export async function createDebianPackage(
    }
  
    // Create the package.
--  await execFile('dpkg', [
-+  await execFile('dpkg-deb', [
-+    '-Zgzip',
-     '--build', path.join(dir, pkg.metadata.debName)
-   ], {
-     cwd: path.dirname(dir)
+-  await execFile('dpkg', ['--build', path.join(dir, pkg.metadata.debName)], {
++  await execFile('dpkg-deb', ['-Zgzip', '--build', path.join(dir, pkg.metadata.debName)], {
+     cwd: path.dirname(dir),
+   });
+ 
 diff --git a/packages/build/src/packaging/package/get-package-file.ts b/packages/build/src/packaging/package/get-package-file.ts
-index 9f18ef9..49345f7 100644
+index eaead18..c81e68b 100644
 --- a/packages/build/src/packaging/package/get-package-file.ts
 +++ b/packages/build/src/packaging/package/get-package-file.ts
-@@ -1,4 +1,4 @@
--import { PackageVariant, getDistro, getArch, getDebArchName, getRPMArchName } from '../../config';
-+import { PackageVariant, getDistro, getArch, getDebArchName, getDebCodeName, getRPMArchName, getRPMCodeName } from '../../config';
+@@ -3,7 +3,9 @@ import {
+   getDistro,
+   getArch,
+   getDebArchName,
++  getDebCodeName,
+   getRPMArchName,
++  getRPMCodeName,
+ } from '../../config';
  import type { PackageInformationProvider } from './package-information';
- 
- export interface PackageFile {
-@@ -11,12 +11,12 @@ export function getPackageFile(packageVariant: PackageVariant, packageInformatio
+
+@@ -12,14 +14,14 @@ export interface PackageFile {
+   contentType: string;
+ }
+
+-type PackageFileExtension = 'dmg' | 'tgz' | 'deb' | 'rpm' | 'zip' | 'msi';
++type PackageFileExtension = 'dmg' | 'tar.gz' | 'deb' | 'rpm' | 'zip' | 'msi';
+
+ export function getFileExtension(
+   packageVariant: PackageVariant
+ ): PackageFileExtension {
+   switch (getDistro(packageVariant)) {
+     case 'linux':
+-      return 'tgz';
++      return 'tar.gz';
+     case 'rpm':
+       return 'rpm';
+     case 'deb':
+@@ -46,12 +48,12 @@ export function getPackageFile(
    switch (getDistro(packageVariant)) {
      case 'linux':
        return {
--        path: `${name}-${version}-${packageVariant}.tgz`,
-+        path: `${name}-${version}-${getRPMArchName(getArch(packageVariant))}.tar.gz`,
-         contentType: 'application/gzip'
+-        path: `${name}-${version}-${packageVariant}.${fileExtension}`,
++        path: `${name}-${version}-${getRPMArchName(getArch(packageVariant))}.${fileExtension}`,
+         contentType: 'application/gzip',
        };
      case 'rpm':
        return {
--        path: `${rpmName}-${version}.${getRPMArchName(getArch(packageVariant))}.rpm`,
-+      path: `${rpmName}-${version}${getRPMCodeName()}.${getRPMArchName(getArch(packageVariant))}.rpm`,
-         contentType: 'application/x-rpm'
-       };
-     case 'deb':
-@@ -24,7 +24,7 @@ export function getPackageFile(packageVariant: PackageVariant, packageInformatio
+-        path: `${rpmName}-${version}.${getRPMArchName(
++        path: `${rpmName}-${version}${getRPMCodeName()}.${getRPMArchName(
+           getArch(packageVariant)
+         )}.${fileExtension}`,
+         contentType: 'application/x-rpm',
+@@ -61,7 +63,7 @@ export function getPackageFile(
        // name: https://www.debian.org/doc/manuals/debian-faq/pkg-basics.en.html
        // sometimes there is also revision number, but we can add that later.
        return {
--        path: `${debName}_${version}_${getDebArchName(getArch(packageVariant))}.deb`,
-+        path: `${debName}_${version}.${getDebCodeName()}_${getDebArchName(getArch(packageVariant))}.deb`,
-         contentType: 'application/vnd.debian.binary-package'
-       };
-     case 'darwin':
+-        path: `${debName}_${version}_${getDebArchName(
++        path: `${debName}_${version}.${getDebCodeName()}_${getDebArchName(
+           getArch(packageVariant)
+         )}.${fileExtension}`,
+         contentType: 'application/vnd.debian.binary-package',
 diff --git a/packages/build/src/packaging/package/redhat.ts b/packages/build/src/packaging/package/redhat.ts
-index 35299bf..6b782f9 100644
+index 1e42343..a057e6d 100644
 --- a/packages/build/src/packaging/package/redhat.ts
 +++ b/packages/build/src/packaging/package/redhat.ts
-@@ -85,12 +85,17 @@ export async function createRedhatPackage(
+@@ -134,6 +134,11 @@ export async function createRedhatPackage(
+     );
+   }
  
-   if (pkg.manpage) {
-     await fs.copyFile(pkg.manpage.sourceFilePath, path.join(dir, 'BUILD', pkg.manpage.packagedFilePath), COPYFILE_FICLONE);
--  }
-+    }
- 
-+    //    const dist = (await execFile('rpm', ['--eval', '%{?dist}'], { cwd: path.dirname(dir) }).result.stdout.trim());
-+    const dist = (await execFile('rpm', ['--eval', '%{?dist}'], { cwd: path.dirname(dir) })).stdout.toString().trim();
-+    const json = JSON.stringify(dist);
-+    console.log(json);
++  //    const dist = (await execFile('rpm', ['--eval', '%{?dist}'], { cwd: path.dirname(dir) }).result.stdout.trim());
++  const dist = (await execFile('rpm', ['--eval', '%{?dist}'], { cwd: path.dirname(dir) })).stdout.toString().trim();
++  const json = JSON.stringify(dist);
++  console.log(json);
++
    // Create the package.
-   await execFile('rpmbuild', [
-     '-bb', path.join(dir, 'SPECS', `${pkg.metadata.rpmName}.spec`),
-     '--target', getRPMArchName(arch),
-+    '--define', `dist ${dist}`,
-     '--define', `_topdir ${dir}`
-   ], {
-     cwd: path.dirname(dir)
+   await execFile(
+     'rpmbuild',
+@@ -143,6 +148,8 @@ export async function createRedhatPackage(
+       '--target',
+       getRPMArchName(arch),
+       '--define',
++      `dist ${dist}`,
++      '--define',
+       `_topdir ${dir}`,
+     ],
+     {
 diff --git a/packages/cli-repl/package.json b/packages/cli-repl/package.json
-index bf49e90..e4fe041 100644
+index b285aaf..d20f3ee 100644
 --- a/packages/cli-repl/package.json
 +++ b/packages/cli-repl/package.json
 @@ -1,10 +1,10 @@

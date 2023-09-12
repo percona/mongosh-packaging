@@ -108,12 +108,12 @@ get_sources(){
     GITCOMMIT=$(git rev-parse HEAD 2>/dev/null)
     GITBRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
     NODE_JS_VERSION=$(grep -oP '(?<="version": ")[^"]*' .evergreen/node-16-latest.json)
-    echo "VERSION=${VERSION}" > VERSION
-    echo "REVISION=${REVISION}" >> VERSION
-    echo "GITCOMMIT=${GITCOMMIT}" >> VERSION
-    echo "GITBRANCH=${GITBRANCH}" >> VERSION
-    echo "NODE_JS_VERSION=${NODE_JS_VERSION}" >> VERSION
-    echo "REVISION=${REVISION}" >> ${WORKDIR}/percona-mongodb-mongosh.properties
+    echo "export VERSION=${VERSION}" > VERSION
+    echo "export REVISION=${REVISION}" >> VERSION
+    echo "export GITCOMMIT=${GITCOMMIT}" >> VERSION
+    echo "export GITBRANCH=${GITBRANCH}" >> VERSION
+    echo "export NODE_JS_VERSION=${NODE_JS_VERSION}" >> VERSION
+    echo "export REVISION=${REVISION}" >> ${WORKDIR}/percona-mongodb-mongosh.properties
     cd ${WORKDIR}
     rm -fr debian rpm ${PRODUCT}-${VERSION}
 
@@ -123,6 +123,7 @@ get_sources(){
         git apply ./mongosh.patch || exit 1
         rm ./mongosh.patch
         grep -r -l "0\.0\.0\-dev\.0" . | xargs sed -i "s:0.0.0-dev.0:${VERSION}:g"
+       rm -rf ./scripts/nodejs-patches/*
     popd
     tar --owner=0 --group=0 --exclude=.* -czf ${PRODUCT}-${VERSION}.tar.gz ${PRODUCT}-${VERSION}
     echo "UPLOAD=UPLOAD/experimental/BUILDS/${PRODUCT}/${PRODUCT}-${VERSION}/${BRANCH}/${REVISION}/${BUILD_ID}" >> percona-mongodb-mongosh.properties
@@ -150,12 +151,13 @@ get_system(){
 }
 
 install_npm_modules() {
-    npm install -g npm@latest
+    npm install -g npm@8
     npm install -g n
-    n 16.18.0
+    n ${NODE_JS_VERSION}
     hash -r
     npm install -g lerna
     npm install -g typescript
+    npm install -g cross-env
 }
 
 install_deps() {

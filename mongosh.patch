@@ -142,7 +142,7 @@ index 9174a1e..a3b5ca2 100644
    });
  
 diff --git a/packages/build/src/packaging/package/get-package-file.ts b/packages/build/src/packaging/package/get-package-file.ts
-index eaead18..c81e68b 100644
+index 115fa88b..063a9564 100644
 --- a/packages/build/src/packaging/package/get-package-file.ts
 +++ b/packages/build/src/packaging/package/get-package-file.ts
 @@ -3,7 +3,9 @@ import {
@@ -155,29 +155,12 @@ index eaead18..c81e68b 100644
  } from '../../config';
  import type { PackageInformationProvider } from './package-information';
 
-@@ -12,14 +14,14 @@ export interface PackageFile {
-   contentType: string;
- }
-
--type PackageFileExtension = 'dmg' | 'tgz' | 'deb' | 'rpm' | 'zip' | 'msi';
-+type PackageFileExtension = 'dmg' | 'tar.gz' | 'deb' | 'rpm' | 'zip' | 'msi';
-
- export function getFileExtension(
-   packageVariant: PackageVariant
- ): PackageFileExtension {
-   switch (getDistro(packageVariant)) {
-     case 'linux':
--      return 'tgz';
-+      return 'tar.gz';
-     case 'rpm':
-       return 'rpm';
-     case 'deb':
-@@ -46,12 +48,12 @@ export function getPackageFile(
+@@ -21,12 +23,12 @@ export function getPackageFile(
    switch (getDistro(packageVariant)) {
      case 'linux':
        return {
--        path: `${name}-${version}-${packageVariant}.${fileExtension}`,
-+        path: `${name}-${version}-${getRPMArchName(getArch(packageVariant))}.${fileExtension}`,
+-        path: `${name}-${version}-${packageVariant}.tgz`,
++        path: `${name}-${version}-${getRPMArchName(getArch(packageVariant))}.tar.gz`,
          contentType: 'application/gzip',
        };
      case 'rpm':
@@ -185,16 +168,16 @@ index eaead18..c81e68b 100644
 -        path: `${rpmName}-${version}.${getRPMArchName(
 +        path: `${rpmName}-${version}${getRPMCodeName()}.${getRPMArchName(
            getArch(packageVariant)
-         )}.${fileExtension}`,
+         )}.rpm`,
          contentType: 'application/x-rpm',
-@@ -61,7 +63,7 @@ export function getPackageFile(
+@@ -36,7 +38,7 @@ export function getPackageFile(
        // name: https://www.debian.org/doc/manuals/debian-faq/pkg-basics.en.html
        // sometimes there is also revision number, but we can add that later.
        return {
 -        path: `${debName}_${version}_${getDebArchName(
 +        path: `${debName}_${version}.${getDebCodeName()}_${getDebArchName(
            getArch(packageVariant)
-         )}.${fileExtension}`,
+         )}.deb`,
          contentType: 'application/vnd.debian.binary-package',
 diff --git a/packages/build/src/packaging/package/redhat.ts b/packages/build/src/packaging/package/redhat.ts
 index 1e42343..a057e6d 100644

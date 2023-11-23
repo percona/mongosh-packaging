@@ -155,11 +155,11 @@ index 115fa88b..063a9564 100644
  } from '../../config';
  import type { PackageInformationProvider } from './package-information';
 
-@@ -21,12 +23,12 @@ export function getPackageFile(
+@@ -46,12 +46,12 @@ export function getPackageFile(
    switch (getDistro(packageVariant)) {
      case 'linux':
        return {
--        path: `${name}-${version}-${packageVariant}.tgz`,
+-        path: `${name}-${version}-${packageVariant}.${fileExtension}`,
 +        path: `${name}-${version}-${getRPMArchName(getArch(packageVariant))}.tar.gz`,
          contentType: 'application/gzip',
        };
@@ -168,16 +168,16 @@ index 115fa88b..063a9564 100644
 -        path: `${rpmName}-${version}.${getRPMArchName(
 +        path: `${rpmName}-${version}${getRPMCodeName()}.${getRPMArchName(
            getArch(packageVariant)
-         )}.rpm`,
+         )}.${fileExtension}`,
          contentType: 'application/x-rpm',
-@@ -36,7 +38,7 @@ export function getPackageFile(
+@@ -61,7 +61,7 @@ export function getPackageFile(
        // name: https://www.debian.org/doc/manuals/debian-faq/pkg-basics.en.html
        // sometimes there is also revision number, but we can add that later.
        return {
 -        path: `${debName}_${version}_${getDebArchName(
 +        path: `${debName}_${version}.${getDebCodeName()}_${getDebArchName(
            getArch(packageVariant)
-         )}.deb`,
+         )}.${fileExtension}`,
          contentType: 'application/vnd.debian.binary-package',
 diff --git a/packages/build/src/packaging/package/redhat.ts b/packages/build/src/packaging/package/redhat.ts
 index 1e42343..a057e6d 100644

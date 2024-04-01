@@ -331,3 +331,18 @@ index 0000000..9b7e8e1
 +
 +%files
 +{{filelistRpm}}
+diff --git a/packages/build/src/compile/signable-compiler.ts b/packages/build/src/compile/signable-compiler.ts
+index b6d3f86..984fb5d 100644
+--- a/packages/build/src/compile/signable-compiler.ts
++++ b/packages/build/src/compile/signable-compiler.ts
+@@ -180,8 +180,8 @@ export class SignableCompiler {
+       preCompileHook,
+       executableMetadata: this.executableMetadata,
+       // Node.js startup snapshots are an experimental feature of Node.js.
+-      // useCodeCache: true,
+-      useNodeSnapshot: true,
++      useCodeCache: true,
++      // useNodeSnapshot: true,
+       // To account for the fact that we are manually patching Node.js to include
+       // https://github.com/nodejs/node/pull/50453 until we have caught up with upstream
+       nodeSnapshotConfigFlags: ['Default'],

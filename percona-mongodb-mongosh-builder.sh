@@ -107,7 +107,7 @@ get_sources(){
     REVISION=$(git rev-parse --short HEAD)
     GITCOMMIT=$(git rev-parse HEAD 2>/dev/null)
     GITBRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-    NODE_JS_VERSION=$(grep -oP '(?<="version": ")[^"]*' .evergreen/node-16-latest.json)
+    NODE_JS_VERSION=$(grep -oP '(?<="version": ")[^"]*' .evergreen/node-20-latest.json)
     echo "export VERSION=${VERSION}" > VERSION
     echo "export REVISION=${REVISION}" >> VERSION
     echo "export GITCOMMIT=${GITCOMMIT}" >> VERSION
@@ -123,7 +123,7 @@ get_sources(){
         git apply ./mongosh.patch || exit 1
         rm ./mongosh.patch
         grep -r -l "0\.0\.0\-dev\.0" . | xargs sed -i "s:0.0.0-dev.0:${VERSION}:g"
-        rm -rf ./scripts/nodejs-patches/*
+        #rm -rf ./scripts/nodejs-patches/*
     popd
     tar --owner=0 --group=0 --exclude=.* -czf ${PRODUCT}-${VERSION}.tar.gz ${PRODUCT}-${VERSION}
     echo "UPLOAD=UPLOAD/experimental/BUILDS/${PRODUCT}/${PRODUCT}-${VERSION}/${BRANCH}/${REVISION}/${BUILD_ID}" >> percona-mongodb-mongosh.properties
@@ -153,7 +153,7 @@ get_system(){
 install_npm_modules() {
     npm install -g n
     n ${NODE_JS_VERSION}
-    npm install -g npm@9
+    npm install -g npm@10
     hash -r
     npm install -g lerna
     npm install -g typescript

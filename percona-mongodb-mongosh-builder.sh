@@ -207,6 +207,9 @@ install_deps() {
           apt-get -y update
       fi
       INSTALL_LIST="wget git devscripts debhelper debconf pkg-config npm libkrb5-dev cmake bzip2 gcc g++"
+      if [ x"${DEBIAN}" = xnoble ]; then
+          INSTALL_LIST="${INSTALL_LIST} python3-distutils-extra"
+      fi
       until DEBIAN_FRONTEND=noninteractive apt-get -y install ${INSTALL_LIST}; do
         sleep 1
         echo "waiting"

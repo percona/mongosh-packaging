@@ -1,11 +1,11 @@
 commit 8690e6b423c292168449805c0d60c6fed69bcf88
 Author: Oleksandr Miroshnychenko <alex.miroshnychenko@percona.com>
-Date:   Tue Sep 5 20:27:59 2023 +0000
+Date:   Fri Jul 5 20:27:59 2024 +0000
 
-    v1.10.6 new patch
+    v2.2.10 adjust patch for 2.2.x versions
 
 diff --git a/config/build.conf.js b/config/build.conf.js
-index f6a5094..f8001a4 100644
+index 7959a7e3..7b777124 100644
 --- a/config/build.conf.js
 +++ b/config/build.conf.js
 @@ -63,7 +63,7 @@ const REVISION = process.env.GITHUB_COMMIT ?? process.env.REVISION;
@@ -14,10 +14,10 @@ index f6a5094..f8001a4 100644
   */
 -const COPYRIGHT = `${new Date().getYear() + 1900} MongoDB, Inc.`;
 +const COPYRIGHT = `${new Date().getYear() + 1900} Percona LLC`;
- 
+
  /**
   * The manual page file name
-@@ -122,21 +122,10 @@ module.exports = {
+@@ -123,21 +123,10 @@ module.exports = {
            license: {
              sourceFilePath: path.resolve(__dirname, '..', 'LICENSE'),
              packagedFilePath: 'LICENSE-mongosh',
@@ -40,7 +40,17 @@ index f6a5094..f8001a4 100644
          }
        ],
        otherDocFilePaths: [
-@@ -154,14 +143,14 @@ module.exports = {
+@@ -149,24 +138,20 @@ module.exports = {
+           sourceFilePath: path.resolve(__dirname, '..', 'THIRD_PARTY_NOTICES.md'),
+           packagedFilePath: 'THIRD_PARTY_NOTICES'
+         },
+-        {
+-          sourceFilePath: path.resolve(path.dirname(EXECUTABLE_PATH), '.sbom.json'),
+-          packagedFilePath: '.sbom.json'
+-        },
+       ],
+       manpage: {
+         sourceFilePath: path.resolve(TMP_DIR, 'manpage', MANPAGE_NAME),
          packagedFilePath: MANPAGE_NAME,
        },
        metadata: {
@@ -59,7 +69,7 @@ index f6a5094..f8001a4 100644
                []
            )
          ],
-@@ -170,7 +170,7 @@ module.exports = {
+@@ -175,7 +160,7 @@ module.exports = {
              SHARED_OPENSSL_TAG === 'openssl3' ? ', libssl3' : ''
          ),
          debRecommends: 'libgssapi-krb5-2',

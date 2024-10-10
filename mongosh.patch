@@ -214,6 +214,32 @@ index 1e42343..a057e6d 100644
        `_topdir ${dir}`,
      ],
      {
+diff --git a/packages/build/src/packaging/package/tarball.spec.ts b/packages/build/src/packaging/package/tarball.spec.ts
+index 03fc9e21..7f8d8c81 100644
+--- a/packages/build/src/packaging/package/tarball.spec.ts
++++ b/packages/build/src/packaging/package/tarball.spec.ts
+@@ -15,7 +15,7 @@ describe('package tarball', function () {
+       tmpPkg.pkgConfig
+     );
+     await fs.access(tarball.path);
+-    const tarname = path.basename(tarball.path).replace(/\.tgz$/, '');
++    const tarname = path.basename(tarball.path).replace(/\.tar.gz$/, '');
+
+     const unzip = spawnSync(
+       'tar',
+diff --git a/packages/build/src/packaging/package/tarball.ts b/packages/build/src/packaging/package/tarball.ts
+index be2a8724..24811f6c 100644
+--- a/packages/build/src/packaging/package/tarball.ts
++++ b/packages/build/src/packaging/package/tarball.ts
+@@ -13,7 +13,7 @@ export async function createTarballPackage(
+   pkg: PackageInformation,
+   outFile: string
+ ): Promise<void> {
+-  const filename = path.basename(outFile).replace(/\.[^.]+$/, '');
++  const filename = path.basename(outFile).replace(/\.tar\.gz$/, '');
+   const tmpDir = await createCompressedArchiveContents(filename, pkg);
+   await tar.c(
+     {
 diff --git a/packages/cli-repl/package.json b/packages/cli-repl/package.json
 index b285aaf..d20f3ee 100644
 --- a/packages/cli-repl/package.json

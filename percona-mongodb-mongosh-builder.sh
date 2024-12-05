@@ -142,6 +142,11 @@ get_system(){
         ARCH=$(echo $(uname -m) | sed -e 's:i686:i386:g')
         OS_NAME="el$RHEL"
         OS="rpm"
+    elif [ -f /etc/amazon-linux-release ]; then
+        RHEL=$(rpm --eval %amzn)
+        ARCH=$(echo $(uname -m) | sed -e 's:i686:i386:g')
+        OS_NAME="el$RHEL"
+        OS="rpm"
     else
         ARCH=$(uname -m)
         OS_NAME="$(lsb_release -sc)"
@@ -174,7 +179,6 @@ install_deps() {
     CURPLACE=$(pwd)
 
     if [ "x$OS" = "xrpm" ]; then
-      RHEL=$(rpm --eval %rhel)
       yum -y install wget git rpm-build rpmdevtools python3 krb5-devel cmake bzip2
 
       if [ "x${RHEL}" = "x7" ]; then
@@ -190,7 +194,7 @@ install_deps() {
           yum -y install npm gcc-toolset-11
           source /opt/rh/gcc-toolset-11/enable
       fi
-      if [ "x${RHEL}" = "x9" ]; then
+      if [ "x${RHEL}" = "x9" -o "x${RHEL}" = "x2023" ]; then
           yum -y install npm gcc g++ openssl-devel
       fi
       yum clean all
@@ -245,7 +249,6 @@ build_mongosh(){
     fi
     echo $PATH
     if [ "x$OS" = "xrpm" ]; then
-      RHEL=$(rpm --eval %rhel)
       if [ "x${RHEL}" = "x7" ]; then
           source /opt/rh/devtoolset-11/enable
       fi
@@ -264,7 +267,7 @@ build_mongosh(){
     pwd
     ls -la
     npm run bootstrap
-    if [ "x${RHEL}" = "x9" ]; then
+    if [ "x${RHEL}" = "x9" -o "x${RHEL}" = "x2023" ]; then
         export BOXEDNODE_CONFIGURE_ARGS="--shared-openssl"
     fi
     NODE_JS_VERSION=${NODE_JS_VERSION} SEGMENT_API_KEY="dummy" BOXEDNODE_CONFIGURE_ARGS=${BOXEDNODE_CONFIGURE_ARGS} BOXEDNODE_MAKE_ARGS="-j${NCPU}" REVISION=${REVISION} BUILD_FLE_FROM_SOURCE=true npm run compile-exec;

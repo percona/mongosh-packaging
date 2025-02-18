@@ -100,9 +100,15 @@ get_sources(){
     cd ${PRODUCT}
     if [ ! -z "$BRANCH" ]
     then
+       # https://github.com/mongodb-js/mongosh bump versions after creating a release tag for the exact version
+       # https://github.com/mongodb-js/mongosh/pull/2289, https://github.com/mongodb-js/mongosh/pull/2358
+       # Get actual release versions used for releas, automatically made by "npm run evergreen-release bump",
+       # which are not included into $version tag and cherry-pick them.
+       BUMP_COMMIT=$(git log --grep="^chore(release): bump packages$" --format="%H" --no-merges -n 1)
         git reset --hard
         git clean -xdf
         git checkout -b "$BRANCH" "$BRANCH"
+        git cherry-pick "$BUMP_COMMIT"
     fi
     REVISION=$(git rev-parse --short HEAD)
     GITCOMMIT=$(git rev-parse HEAD 2>/dev/null)
@@ -120,9 +126,10 @@ get_sources(){
     mv ${PRODUCT} ${PRODUCT}-${VERSION}
     pushd ${PRODUCT}-${VERSION}
         cp ../../mongosh.patch .
+        sed -i "s:__VERSION__:${VERSION}:g" ./mongosh.patch
         git apply ./mongosh.patch || exit 1
         rm ./mongosh.patch
-        grep -r -l "0\.0\.0\-dev\.0" . | xargs sed -i "s:0.0.0-dev.0:${VERSION}:g"
+        #grep -r -l "0\.0\.0\-dev\.0" . | xargs sed -i "s:0.0.0-dev.0:${VERSION}:g"
         #rm -rf ./scripts/nodejs-patches/*
     popd
     tar --owner=0 --group=0 --exclude=.* -czf ${PRODUCT}-${VERSION}.tar.gz ${PRODUCT}-${VERSION}
@@ -192,6 +199,8 @@ install_deps() {
       fi
       if [ "x${RHEL}" = "x8" ]; then
           yum -y install npm gcc-toolset-11
+          yum -y install python3.8
+          update-alternatives --remove python3 /usr/bin/python3.6
           source /opt/rh/gcc-toolset-11/enable
       fi
       if [ "x${RHEL}" = "x9" -o "x${RHEL}" = "x2023" ]; then

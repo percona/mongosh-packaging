@@ -100,11 +100,13 @@ get_sources(){
     cd ${PRODUCT}
     if [ ! -z "$BRANCH" ]
     then
-       # https://github.com/mongodb-js/mongosh bump versions after creating a release tag for the exact version
-       # https://github.com/mongodb-js/mongosh/pull/2289, https://github.com/mongodb-js/mongosh/pull/2358
-       # Get actual release versions used for releas, automatically made by "npm run evergreen-release bump",
-       # which are not included into $version tag and cherry-pick them.
-       BUMP_COMMIT=$(git log --grep="^chore(release): bump packages$" --format="%H" --no-merges -n 1)
+        # https://github.com/mongodb-js/mongosh bump versions after creating a release tag for the exact version
+        # https://github.com/mongodb-js/mongosh/pull/2289, https://github.com/mongodb-js/mongosh/pull/2358
+        # Get actual release versions used for releas, automatically made by "npm run evergreen-release bump",
+        # which are not included into $version tag and cherry-pick them. 
+        # This commit can now be found using the mongosh@${VERSION} tag (i.e., mongosh@2.3.9).
+
+        BUMP_COMMIT=$(git rev-list -n 1 "mongosh@${VERSION}")
         git reset --hard
         git clean -xdf
         git checkout -b "$BRANCH" "$BRANCH"

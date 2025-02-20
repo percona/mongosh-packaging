@@ -165,8 +165,10 @@ get_system(){
 install_npm_modules() {
     npm install -g n
     n ${NODE_JS_VERSION}
+    hash -r
     npm install -g npm@10
     hash -r
+    npm cache clean --force
     npm install -g lerna
     npm install -g typescript
     npm install -g cross-env
@@ -276,11 +278,14 @@ build_mongosh(){
     pwd
     ls -la
     npm run bootstrap
+    npm run mark-ci-required-optional-dependencies
+    npm ci --ignore-scripts --verbose
+    npm ls || true
     if [ "x${RHEL}" = "x9" -o "x${RHEL}" = "x2023" ]; then
         export BOXEDNODE_CONFIGURE_ARGS="--shared-openssl"
     fi
-    NODE_JS_VERSION=${NODE_JS_VERSION} SEGMENT_API_KEY="dummy" BOXEDNODE_CONFIGURE_ARGS=${BOXEDNODE_CONFIGURE_ARGS} BOXEDNODE_MAKE_ARGS="-j${NCPU}" REVISION=${REVISION} BUILD_FLE_FROM_SOURCE=true npm run compile-exec;
-    NODE_JS_VERSION=${NODE_JS_VERSION} SEGMENT_API_KEY="dummy" BOXEDNODE_CONFIGURE_ARGS=${BOXEDNODE_CONFIGURE_ARGS} BOXEDNODE_MAKE_ARGS="-j${NCPU}" REVISION=${REVISION} BUILD_FLE_FROM_SOURCE=true npm run evergreen-release package -- --build-variant=${VARIANT}
+    NODE_JS_VERSION=${NODE_JS_VERSION} SEGMENT_API_KEY="dummy" BOXEDNODE_CONFIGURE_ARGS=${BOXEDNODE_CONFIGURE_ARGS} BOXEDNODE_MAKE_ARGS="-j${NCPU}" REVISION=${REVISION} BUILD_FLE_FROM_SOURCE=true DEBUG=* npm run compile-exec --verbose;
+    NODE_JS_VERSION=${NODE_JS_VERSION} SEGMENT_API_KEY="dummy" BOXEDNODE_CONFIGURE_ARGS=${BOXEDNODE_CONFIGURE_ARGS} BOXEDNODE_MAKE_ARGS="-j${NCPU}" REVISION=${REVISION} BUILD_FLE_FROM_SOURCE=true DEBUG=* npm run evergreen-release package --verbose -- --build-variant=${VARIANT}
     echo ${VARIANT}
 
     if [[ ${VARIANT} =~ 'rpm' ]]; then

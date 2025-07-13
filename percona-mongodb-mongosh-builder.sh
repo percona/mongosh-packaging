@@ -207,7 +207,7 @@ install_deps() {
           update-alternatives --remove python3 /usr/bin/python3.6
           source /opt/rh/gcc-toolset-11/enable
       fi
-      if [ "x${RHEL}" = "x9" -o "x${RHEL}" = "x2023" ]; then
+      if [ "x${RHEL}" = "x9" -o "x${RHEL}" = "x2023" -o "x$RHEL" = "x10" ]; then
           yum -y install npm gcc g++ openssl-devel
       fi
       yum clean all
@@ -283,7 +283,7 @@ build_mongosh(){
     npm run mark-ci-required-optional-dependencies
     npm ci --ignore-scripts --verbose
     npm ls || true
-    if [ "x${RHEL}" = "x9" -o "x${RHEL}" = "x2023" ]; then
+    if [ "x${RHEL}" = "x9" -o "x${RHEL}" = "x2023" -o "x$RHEL" = "x10" ]; then
         export BOXEDNODE_CONFIGURE_ARGS="--shared-openssl"
     fi
     NODE_JS_VERSION=${NODE_JS_VERSION} SEGMENT_API_KEY="dummy" BOXEDNODE_CONFIGURE_ARGS=${BOXEDNODE_CONFIGURE_ARGS} BOXEDNODE_MAKE_ARGS="-j${NCPU}" REVISION=${REVISION} BUILD_FLE_FROM_SOURCE=true npm run compile-exec;

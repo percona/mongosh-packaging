@@ -207,8 +207,13 @@ install_deps() {
           update-alternatives --remove python3 /usr/bin/python3.6
           source /opt/rh/gcc-toolset-13/enable
       fi
-      if [ "x${RHEL}" = "x9" -o "x${RHEL}" = "x2023" -o "x$RHEL" = "x10" ]; then
-          yum -y install npm gcc g++ openssl-devel
+      if [ "x${RHEL}" = "x9" -o "x$RHEL" = "x10" ]; then
+          yum -y install npm gcc-toolset-13 openssl-devel
+          source /opt/rh/gcc-toolset-13/enable
+      fi
+      if [ "x${RHEL}" = "x2023" ]; then
+          yum -y install npm gcc14 gcc14-c++ openssl-devel
+          export CC=gcc14-gcc CXX=gcc14-g++
       fi
       yum clean all
     else
@@ -224,6 +229,14 @@ install_deps() {
           apt-get -y update
       fi
       INSTALL_LIST="wget git devscripts debhelper debconf pkg-config npm libkrb5-dev cmake bzip2 gcc g++"
+      if [ x"${DEBIAN}" = xbullseye ]; then
+          echo "deb http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
+          apt-get -y update
+          INSTALL_LIST="${INSTALL_LIST} gcc-12 g++-12"
+      fi
+      if [ x"${DEBIAN}" = xjammy ]; then
+          INSTALL_LIST="${INSTALL_LIST} gcc-12 g++-12"
+      fi
       if [ x"${DEBIAN}" = xnoble ]; then
           INSTALL_LIST="${INSTALL_LIST} python3-distutils-extra"
       fi
@@ -231,6 +244,12 @@ install_deps() {
         sleep 1
         echo "waiting"
       done
+      if [ x"${DEBIAN}" = xbullseye ] || [ x"${DEBIAN}" = xjammy ]; then
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100
+          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100
+          update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-12 100
+          update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-12 100
+      fi
     fi
     return;
 }
@@ -267,6 +286,12 @@ build_mongosh(){
       fi
       if [ "x${RHEL}" = "x8" ]; then
           source /opt/rh/gcc-toolset-13/enable
+      fi
+      if [ "x${RHEL}" = "x9" -o "x$RHEL" = "x10" ]; then
+          source /opt/rh/gcc-toolset-13/enable
+      fi
+      if [ "x${RHEL}" = "x2023" ]; then
+          export CC=gcc14-gcc CXX=gcc14-g++
       fi
     fi
     get_tar "source_tarball"

@@ -115,7 +115,7 @@ get_sources(){
     REVISION=$(git rev-parse --short HEAD)
     GITCOMMIT=$(git rev-parse HEAD 2>/dev/null)
     GITBRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-    NODE_JS_VERSION=$(grep -oP '(?<="version": ")[^"]*' .evergreen/node-20-latest.json)
+    NODE_JS_VERSION=$(grep -oP '(?<="version": ")[^"]*' .evergreen/node-24-latest.json)
     echo "export VERSION=${VERSION}" > VERSION
     echo "export REVISION=${REVISION}" >> VERSION
     echo "export GITCOMMIT=${GITCOMMIT}" >> VERSION
@@ -202,10 +202,10 @@ install_deps() {
           source /opt/rh/devtoolset-11/enable
       fi
       if [ "x${RHEL}" = "x8" ]; then
-          yum -y install npm gcc-toolset-11
-          yum -y install python3.8
+          yum -y install npm gcc-toolset-13
+          yum -y install python3.11
           update-alternatives --remove python3 /usr/bin/python3.6
-          source /opt/rh/gcc-toolset-11/enable
+          source /opt/rh/gcc-toolset-13/enable
       fi
       if [ "x${RHEL}" = "x9" -o "x${RHEL}" = "x2023" -o "x$RHEL" = "x10" ]; then
           yum -y install npm gcc g++ openssl-devel
@@ -266,7 +266,7 @@ build_mongosh(){
           source /opt/rh/devtoolset-11/enable
       fi
       if [ "x${RHEL}" = "x8" ]; then
-          source /opt/rh/gcc-toolset-11/enable
+          source /opt/rh/gcc-toolset-13/enable
       fi
     fi
     get_tar "source_tarball"

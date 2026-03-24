@@ -230,9 +230,7 @@ install_deps() {
       fi
       INSTALL_LIST="wget git devscripts debhelper debconf pkg-config npm libkrb5-dev cmake bzip2 gcc g++"
       if [ x"${DEBIAN}" = xbullseye ]; then
-          echo "deb http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
-          apt-get -y update
-          INSTALL_LIST="${INSTALL_LIST} gcc-12 g++-12"
+          INSTALL_LIST="${INSTALL_LIST} libgmp-dev libmpfr-dev libmpc-dev flex texinfo"
       fi
       if [ x"${DEBIAN}" = xjammy ]; then
           INSTALL_LIST="${INSTALL_LIST} gcc-12 g++-12"
@@ -244,7 +242,26 @@ install_deps() {
         sleep 1
         echo "waiting"
       done
-      if [ x"${DEBIAN}" = xbullseye ] || [ x"${DEBIAN}" = xjammy ]; then
+      if [ x"${DEBIAN}" = xbullseye ]; then
+          if [ ! -x /opt/gcc-12/bin/g++ ]; then
+              echo "Building GCC 12 from source for Bullseye glibc compatibility..."
+              GCC_VER=12.4.0
+              cd /tmp
+              wget -q https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VER}/gcc-${GCC_VER}.tar.xz
+              tar xf gcc-${GCC_VER}.tar.xz
+              cd gcc-${GCC_VER}
+              ./contrib/download_prerequisites
+              mkdir build && cd build
+              ../configure --prefix=/opt/gcc-12 --enable-languages=c,c++ \
+                  --disable-multilib --disable-bootstrap
+              make -j$(nproc)
+              make install
+              cd /tmp && rm -rf gcc-${GCC_VER}*
+          fi
+          export CC=/opt/gcc-12/bin/gcc
+          export CXX=/opt/gcc-12/bin/g++
+      fi
+      if [ x"${DEBIAN}" = xjammy ]; then
           update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100
           update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 100
           update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-12 100
@@ -292,6 +309,14 @@ build_mongosh(){
       fi
       if [ "x${RHEL}" = "x2023" ]; then
           export CC=gcc14-gcc CXX=gcc14-g++
+      fi
+    else
+      export DEBIAN=$(lsb_release -sc)
+      if [ x"${DEBIAN}" = xbullseye ]; then
+          export CC=/opt/gcc-12/bin/gcc
+          export CXX=/opt/gcc-12/bin/g++
+          export LD_LIBRARY_PATH=/opt/gcc-12/lib64:${LD_LIBRARY_PATH}
+          export LDFLAGS="-static-libstdc++"
       fi
     fi
     get_tar "source_tarball"

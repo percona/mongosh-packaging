@@ -207,9 +207,13 @@ install_deps() {
           update-alternatives --remove python3 /usr/bin/python3.6
           source /opt/rh/gcc-toolset-13/enable
       fi
-      if [ "x${RHEL}" = "x9" -o "x$RHEL" = "x10" ]; then
+      if [ "x${RHEL}" = "x9" ]; then
           yum -y install npm gcc-toolset-13 openssl-devel
           source /opt/rh/gcc-toolset-13/enable
+      fi
+      if [ "x$RHEL" = "x10" ]; then
+          yum -y install npm gcc gcc-c++ openssl-devel
+          export CC=gcc CXX=g++
       fi
       if [ "x${RHEL}" = "x2023" ]; then
           yum -y install npm gcc14 gcc14-c++ openssl-devel
@@ -301,11 +305,11 @@ build_mongosh(){
       if [ "x${RHEL}" = "x7" ]; then
           source /opt/rh/devtoolset-11/enable
       fi
-      if [ "x${RHEL}" = "x8" ]; then
+      if [ "x${RHEL}" = "x8" -o "x${RHEL}" = "x9" ]; then
           source /opt/rh/gcc-toolset-13/enable
       fi
-      if [ "x${RHEL}" = "x9" -o "x$RHEL" = "x10" ]; then
-          source /opt/rh/gcc-toolset-13/enable
+      if [ "x$RHEL" = "x10" ]; then
+          export CC=gcc CXX=g++
       fi
       if [ "x${RHEL}" = "x2023" ]; then
           export CC=gcc14-gcc CXX=gcc14-g++

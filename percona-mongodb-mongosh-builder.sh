@@ -192,6 +192,12 @@ install_deps() {
     if [ "x$OS" = "xrpm" ]; then
       yum -y install wget git rpm-build rpmdevtools python3 krb5-devel cmake bzip2
 
+      if [ "x${RHEL}" = "x2023" ]; then
+          yum -y swap gnupg2-minimal gnupg2
+      else
+          yum -y install gnupg2
+      fi
+
       if [ "x${RHEL}" = "x7" ]; then
           until yum -y install epel-release centos-release-scl; do
               echo "waiting"
